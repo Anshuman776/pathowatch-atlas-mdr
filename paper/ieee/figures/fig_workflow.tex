@@ -1,0 +1,16 @@
+% Study workflow (full text width). Edit node text freely.
+\begin{tikzpicture}[font=\footnotesize, node distance=4mm and 5mm,
+  b/.style={draw, thick, rounded corners=2pt, align=center, minimum height=10mm, text width=27mm, fill=gray!6},
+  a/.style={-{Stealth[length=2mm]}, thick}]
+\node[b] (d) {ATLAS open release\\633{,}820 isolates, 2004--2017};
+\node[b, right=of d] (s) {Four Gram-negative\\priority species\\@@N_TOTAL@@ isolates};
+\node[b, right=of s] (l) {Species-specific MDR\\labelling (two\\implementations)};
+\node[b, right=of l] (f) {Pre-AST predictors\\(8 variables)};
+\node[b, right=of f] (m) {Four classifiers\\+ baseline};
+\node[b, below=6mm of m] (v) {Validation: temporal,\\random, income,\\WHO region};
+\node[b, left=of v] (c) {Calibration and\\recalibration;\\learning curve};
+\node[b, left=of c] (x) {Explainability:\\importance, adjusted\\odds ratios};
+\node[b, left=of x, text width=58mm] (e) {Epidemiology: trends, funnel-plot\\hotspots, yearly forecasting};
+\draw[a] (d)--(s); \draw[a] (s)--(l); \draw[a] (l)--(f); \draw[a] (f)--(m); \draw[a] (m)--(v); \draw[a] (v)--(c); \draw[a] (c)--(x);
+\draw[a] (l.south) -- ++(0,-3mm) -| (e.north);
+\end{tikzpicture}

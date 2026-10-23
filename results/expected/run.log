@@ -1,0 +1,15 @@
+countries without income group: [] rows: 0
+Baseline {'n': 68745, 'prevalence': 0.3607, 'mean_pred': 0.3941, 'auroc': 0.5934, 'auprc': 0.4467, 'brier': 0.2226, 'f1': 0.5301, 'sens': 1.0, 'spec': 0.0, 'thr': 0.05, 'auroc_ci': (0.5891727269868535, 0.5974871244577419), 'auprc_ci': (0.4414592424059765, 0.45199677483564976), 'fit_seconds': 19.8}
+LR {'n': 68745, 'prevalence': 0.3607, 'mean_pred': 0.3933, 'auroc': 0.6862, 'auprc': 0.5669, 'brier': 0.2078, 'f1': 0.5712, 'sens': 0.7919, 'spec': 0.4465, 'thr': 0.31, 'auroc_ci': (0.6823985610244877, 0.6901114738657002), 'auprc_ci': (0.5602253637153468, 0.5733589409118205), 'fit_seconds': 26.9}
+LinearSVM {'n': 68745, 'prevalence': 0.3607, 'mean_pred': 0.3949, 'auroc': 0.6839, 'auprc': 0.5646, 'brier': 0.2079, 'f1': 0.5639, 'sens': 0.7069, 'spec': 0.5487, 'thr': 0.37, 'auroc_ci': (0.6798110811611618, 0.6883969844511542), 'auprc_ci': (0.5578168097254025, 0.5716325377567175), 'fit_seconds': 28.8}
+RF {'n': 68745, 'prevalence': 0.3607, 'mean_pred': 0.3658, 'auroc': 0.7079, 'auprc': 0.5969, 'brier': 0.201, 'f1': 0.577, 'sens': 0.8161, 'spec': 0.4286, 'thr': 0.295, 'auroc_ci': (0.7038818689310291, 0.7119010546033141), 'auprc_ci': (0.5909237543119933, 0.6039514826606054), 'fit_seconds': 154.4}
+GBM {'n': 68745, 'prevalence': 0.3607, 'mean_pred': 0.3662, 'auroc': 0.7139, 'auprc': 0.6065, 'brier': 0.1982, 'f1': 0.5796, 'sens': 0.7181, 'spec': 0.5714, 'thr': 0.31, 'auroc_ci': (0.7100521377063782, 0.717979980006426), 'auprc_ci': (0.6004832593053284, 0.6120874439406238), 'fit_seconds': 34.0}
+HIC-trained HIC 0.6287 0.317 0.315
+HIC-trained UMIC 0.6431 0.48 0.322
+HIC-trained LMIC 0.64 0.496 0.321
+HIC-trained India 0.6986 0.585 0.351
+All-trained HIC 0.6279 0.317 0.355
+All-trained UMIC 0.6558 0.48 0.369
+All-trained LMIC 0.6609 0.496 0.362
+All-trained India 0.7265 0.585 0.385
+done

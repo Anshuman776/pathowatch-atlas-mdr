@@ -1,0 +1,476 @@
+%% =============================================================================
+%%  PathoWatch -- IEEE conference version (IEEEtran, two-column)
+%%  Compile on Overleaf with pdfLaTeX:  pdfLaTeX -> BibTeX -> pdfLaTeX -> pdfLaTeX
+%%  Items needing author confirmation are printed in red via \authornote{...}.
+%%  Before submission, replace every \authornote{...} with final text. Changing
+%%  \drafttrue to \draftfalse below only HIDES the notes; it does not fill them in.
+%% =============================================================================
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage[hidelinks]{hyperref}
+
+\newif\ifdraft \drafttrue
+\newcommand{\authornote}[1]{\ifdraft\textcolor{red}{[#1]}\fi}
+\newcommand{\sci}[1]{\textit{#1}}
+\DeclareMathOperator{\logit}{logit}
+\DeclareMathOperator{\expit}{expit}
+
+\begin{document}
+
+\title{Predicting Multidrug Resistance from Routine Isolate Metadata Before Susceptibility Testing: Temporal, Cross-Income and Cross-Regional Validation on Global ATLAS Surveillance Data}
+
+\author{
+\IEEEauthorblockN{Anshuman Maurya, Pawan Kushawaha, Tauhid Alam, Rachit Kesarwani, Anju Mishra \authornote{confirm author order and corresponding author}}
+\IEEEauthorblockA{Department of Information Technology, Ajay Kumar Garg Engineering College, Ghaziabad, Uttar Pradesh, India\\
+Email: \authornote{add author e-mail addresses}}
+}
+
+\maketitle
+
+\begin{abstract}
+Multidrug-resistant (MDR) Gram-negative infections are a growing cause of death, especially in South Asia, yet susceptibility results arrive days after sampling. We asked how well MDR status can be predicted from metadata available before antimicrobial susceptibility testing (AST), and whether such models remain reliable over time and across income settings. Using the open ATLAS surveillance release (2004--2017), we labelled @@N_TOTAL@@ isolates of \sci{E. coli}, \sci{K. pneumoniae}, \sci{P. aeruginosa} and \sci{A. baumannii} from @@N_COUNTRIES@@ countries with species-specific MDR criteria. Four classifiers were trained on 2004--2014 and tested on 2015--2017. Gradient boosting performed best (AUROC @@GBM_AUROC_CI@@); a random split inflated the AUROC to @@RS_AUROC@@. Country, species, intensive-care and long-term-care origin and specimen type were the main predictors. A model trained only on high-income countries kept moderate discrimination in lower-middle-income countries (AUROC @@T_HIC_LMIC_AUROC@@) but predicted a mean MDR risk of @@T_HIC_LMIC_PRED@@ against an observed @@T_HIC_LMIC_OBS@@. Recalibration with the most recent local year (2014) reduced the expected calibration error from @@ECE_LMIC_NONE@@ to @@ECE_LMIC_RECENT@@. Routine metadata supports population-level MDR risk stratification for surveillance research, not individual treatment decisions, and transferred models need local recalibration.
+\end{abstract}
+
+\begin{IEEEkeywords}
+antimicrobial resistance, multidrug resistance, machine learning, surveillance, model calibration, dataset shift, India
+\end{IEEEkeywords}
+
+%% ================================ I ==========================================
+\section{Introduction}\label{sec:intro}
+Antimicrobial resistance (AMR) is one of the defining health problems of this century. Bacterial AMR directly caused an estimated 1.27 million deaths in 2019 and was associated with 4.95 million \cite{murray2022}, and more than 39 million attributable deaths are projected between 2025 and 2050 \cite{naghavi2024}. The WHO Bacterial Priority Pathogens List of 2024 places carbapenem-resistant \sci{A. baumannii}, third-generation cephalosporin-resistant Enterobacterales and carbapenem-resistant Enterobacterales in its critical group, and carbapenem-resistant \sci{P. aeruginosa} in its high group \cite{who_bppl2024}; these ``ESKAPE'' organisms escape most available treatments \cite{rice2008}. WHO's 2025 report found that one in six laboratory-confirmed bacterial infections worldwide was resistant in 2023, and that more than 40\% of \sci{E. coli} and more than 55\% of \sci{K. pneumoniae} were resistant to third-generation cephalosporins \cite{who_glass2025}.
+
+South Asia carries a disproportionate share of this burden: one in three infections in WHO's South-East Asia Region was resistant \cite{who_glass2025}. India's national network found that only 31.2\% of \sci{K. pneumoniae} isolates were susceptible to imipenem in 2024, compared with 58.5\% in 2017, and that 91.0\% of \sci{A. baumannii} were resistant to meropenem \cite{icmr2024}. The spread of the New Delhi metallo-$\beta$-lactamase (NDM-1) across India, Pakistan and the United Kingdom, documented in 2010, showed how quickly carbapenem resistance can move between countries \cite{kumarasamy2010}. India adopted its first National Action Plan on AMR in 2017 \cite{napamr2017} and a second plan for 2025--2029 in November 2025 \cite{napamr2025}, but surveillance in low- and middle-income countries remains limited by laboratory capacity, coverage and slow data flow \cite{gandra2020}.
+
+An isolate is multidrug-resistant when it is non-susceptible to at least one agent in three or more antimicrobial categories \cite{magiorakos2012}. Confirming this requires culture and AST, and during that interval clinicians and infection-control teams act with little information. Machine learning (ML) can estimate resistance from data already recorded: demographics and history predict resistance in community urinary infections \cite{yelin2019}, and hospital records predict resistance to specific antibiotics \cite{lewinepstein2021}. Reviews document a rapidly growing literature \cite{kim2022,ardila2025,latif2026}.
+
+Three gaps limit the use of such models in surveillance. First, many studies use other antibiotics' susceptibility results as inputs \cite{valavarasu2025,wishal2026}, so predictions are only available after testing. Second, most models are validated on random subsets of the same data rather than on later years, although surveillance models are always applied to the future. Third, models are moved between settings without checking whether their probabilities remain correct; dataset shift is a recognised cause of failure in clinical AI \cite{finlayson2021,wong2021}, calibration is often neglected \cite{vancalster2019}, resistance models have lost accuracy across regions \cite{nsubuga2024}, and AMR databases remain dominated by high-income settings \cite{centner2026}.
+
+This study asked five questions: (i) how well MDR status can be predicted from pre-AST metadata; (ii) how much the validation design changes apparent performance; (iii) whether models trained in high-income countries remain discriminating and calibrated in lower-middle-income countries and India; (iv) whether simple recalibration corrects any error, and how much local data is needed; and (v) which factors drive MDR risk, how prevalence varies over time and place, and whether yearly prevalence can be forecast. Our contributions are:
+\begin{enumerate}
+\item a reproducible, species-specific MDR labelling of @@N_TOTAL@@ ATLAS isolates, cross-checked with two separate implementations;
+\item a benchmark of four classifiers under forward-in-time validation using only pre-AST metadata, compared directly with random splitting;
+\item a transfer analysis across World Bank income groups and WHO regions that separates discrimination from calibration, with a comparison of recalibration strategies and a learning curve;
+\item interpretable evidence on predictors, species-standardised funnel plots and a benchmark of simple forecasts of yearly MDR prevalence; and
+\item practical recommendations for MDR surveillance tools in India. The analysis is the evidence base for PathoWatch, a real-time MDR surveillance platform under development by the authors; the design of that platform is outside the scope of this paper.
+\end{enumerate}
+
+%% ================================ II =========================================
+\section{Related Work}\label{sec:related}
+\textit{Clinical and metadata-based prediction.} Yelin \textit{et al.} linked more than 700{,}000 community urinary infections in Israel to over five million antibiotic purchases and showed that demographics, past cultures and prior purchases predicted resistance to specific drugs \cite{yelin2019}. Lewin-Epstein \textit{et al.} used more than 16{,}000 resistance tests from hospitalised patients at one Israeli centre; an ensemble reached an AUROC of 0.73--0.79 without species information and 0.80--0.88 with it \cite{lewinepstein2021}. For MRSA, contact-network features improved a penalised logistic regression model \cite{kamruzzaman2024}, and a recurrent neural network on time-series records predicted culture positivity with external validation on MIMIC-IV \cite{nigo2024}. Interpretable time-series models have been built for early MDR prediction in intensive care \cite{martinezaguero2022}. These studies used rich patient-level records from single high-income health systems, which are rarely available in Indian public hospitals.
+
+\textit{Surveillance databases.} ATLAS collects isolates from selected laboratories in many countries and reports MICs with basic metadata. Catal\'an \textit{et al.}, analysing the same open release, found most pathogen--antibiotic series non-stationary, found no systematic bias towards resistant strains, and identified artefacts including effects of merging the TEST and INFORM programmes in 2012 \cite{catalan2022}. Valavarasu \textit{et al.} applied gradient boosting to a later extract of 917{,}049 isolates and reported AUCs of 0.95--0.96, predicting resistance from susceptibility data, with the antibiotic tested as the strongest predictor \cite{valavarasu2025}. AMR databases are incomplete and built largely from high-income settings \cite{centner2026}.
+
+\textit{Generalisability and calibration.} Models often degrade in new settings because populations, case mix or recording practices differ \cite{finlayson2021}; a widely used commercial sepsis model performed much worse on external validation than reported by its developers \cite{wong2021}. For AMR, a random forest's accuracy for ciprofloxacin resistance in \sci{E. coli} fell from 0.75 on English data to 0.50 on African data \cite{nsubuga2024}. Calibration can be assessed from the mean risk to the full reliability curve \cite{vancalster2016} and is often the first property to fail when a model is moved \cite{vancalster2019}; updating methods from intercept re-estimation to re-fitting can restore it \cite{janssen2008,steyerberg2019}.
+
+\textit{Explainability and reporting.} Permutation importance quantifies a model's reliance on each input \cite{breiman2001,fisher2019}; LIME has been used for MDR classification \cite{wishal2026}. We follow the TRIPOD+AI statement where applicable \cite{collins2024}. Table~\ref{tab:lit} summarises the closest studies. To our knowledge, none combines species-specific MDR labelling, temporal validation, pre-AST predictors and explicit calibration analysis across income groups and WHO regions on a global surveillance database.
+
+\begin{table*}[!t]
+\caption{Selected Related Studies and How the Present Study Differs}\label{tab:lit}
+\centering\footnotesize
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}X}
+\toprule
+Study & Data and setting & Outcome & Inputs and main result \\
+\midrule
+Yelin \textit{et al.} 2019 \cite{yelin2019} & $>$700{,}000 community UTIs, Israel & Resistance to specific drugs & Demographics, past cultures, purchases; resistance predictable per patient \\
+Lewin-Epstein \textit{et al.} 2021 \cite{lewinepstein2021} & $>$16{,}000 tests, one hospital, Israel & Resistance to five drugs & EMR features; AUROC 0.73--0.79 (0.80--0.88 with species) \\
+Nsubuga \textit{et al.} 2024 \cite{nsubuga2024} & Genomic \sci{E. coli}, England and Africa & Ciprofloxacin and other drugs & Accuracy fell from 0.75 to 0.50 on African data \\
+Valavarasu \textit{et al.} 2025 \cite{valavarasu2025} & ATLAS, 917{,}049 isolates & Resistance per drug & Susceptibility data; AUC 0.95--0.96 \\
+Wishal and Sahara 2026 \cite{wishal2026} & 9{,}714 isolates & MDR & Family-level resistance as inputs; LIME explanations \\
+\midrule
+\textbf{This study} & ATLAS, @@N_TOTAL@@ isolates, @@N_COUNTRIES@@ countries & MDR (species-specific) & Pre-AST metadata only; temporal, cross-income and cross-region validation with calibration and recalibration \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+%% ================================ III ========================================
+\section{Materials and Methods}\label{sec:methods}
+\subsection{Design, Data Source and Population}\label{sec:data}
+This is a retrospective development and validation study using de-identified surveillance data (workflow in Fig.~\ref{fig:workflow}). ATLAS, run by Pfizer, combines the Tigecycline Evaluation and Surveillance Trial (TEST) and the International Network for Optimal Resistance Monitoring (INFORM); participating laboratories contribute clinical isolates under a common study protocol. The open reuse release contains 633{,}820 isolates collected in 2004--2017 \cite{catalan2022,vivli}. Each record gives species, country, year, gender, age group (six bands plus unknown), clinical specialty, specimen source, inpatient or outpatient status and interpretive categories (susceptible, intermediate, resistant) for up to 44 antibiotics. Location is recorded only by country (except US states) and time only by year; no patient identifiers were available. We included all isolates of the four species, which are WHO priority pathogens \cite{who_bppl2024} and the main Gram-negative pathogens reported by India's national network \cite{icmr2024}: @@N_TOTAL@@ isolates from @@N_COUNTRIES@@ countries. No isolates were excluded after labelling.
+
+\begin{figure*}[!t]
+\centering
+\input{figures/fig_workflow.tex}
+\caption{Study workflow. MDR, multidrug-resistant; AST, antimicrobial susceptibility testing.}
+\label{fig:workflow}
+\end{figure*}
+
+\subsection{Outcome: Multidrug Resistance}\label{sec:outcome}
+Following Magiorakos \textit{et al.} \cite{magiorakos2012}, let $\mathcal{C}(s)$ be the antimicrobial categories defined for species $s$, and $\mathrm{NS}_{ik}=1$ if isolate $i$ was intermediate or resistant to at least one ATLAS agent in category $k$. Then
+\begin{equation}
+\mathrm{MDR}_i=\mathbb{1}\Big[\sum_{k\in\mathcal{C}(s_i)}\mathrm{NS}_{ik}\ge 3\Big].
+\label{eq:mdr}
+\end{equation}
+Categories and agents are listed in Table~\ref{tab:cats} (Appendix): 14 for \sci{E. coli}; 13 for \sci{K. pneumoniae}, excluding penicillins (intrinsic ampicillin resistance); 7 for \sci{P. aeruginosa}; and 9 for \sci{A. baumannii}. Levofloxacin was counted with ciprofloxacin, and $\beta$-lactam/$\beta$-lactamase-inhibitor combinations that post-date the definition were not counted. Every isolate was tested in at least five categories (median @@CT_EC@@, @@CT_KP@@, @@CT_PA@@ and @@CT_AB@@ for the four species in the order above). The labelling was implemented twice (row-wise and vectorised) and gave identical counts for every species.
+
+\subsection{Predictors and Models}\label{sec:predictors}
+Only variables normally known before AST is complete were used: species (identification usually precedes AST), specimen source (@@N_SRC@@ body-site groups), clinical specialty (@@N_SPEC@@ groups), patient type, age group, gender, country and year. The ESBL phenotype and all susceptibility results were excluded because they would leak the label; the country variable was also removed in transfer analyses. We compared logistic regression (LR; L2, $C{=}1$), a linear support vector machine (SVM; $C{=}0.1$) with sigmoid calibration \cite{platt1999}, random forest (RF; 300 trees, minimum leaf 20) \cite{breiman2001} and histogram-based gradient boosting (GBM; learning rate 0.05, $\le$600 iterations with early stopping, 31 leaves, L2 1.0, native categorical handling) \cite{ke2017}, plus a species-and-year logistic baseline. Hyperparameters were fixed before the test data were examined (Table~\ref{tab:hyper}); all analyses used scikit-learn @@SKLEARN@@ \cite{pedregosa2011} with a fixed seed.
+
+\subsection{Validation Framework}\label{sec:validation}
+\textit{Temporal (main).} Training on 2004--2014 (@@N_TRAIN@@ isolates) and testing on 2015--2017 (@@N_TEST@@). The threshold for F1, sensitivity and specificity maximised F1 on 2014 using models fitted to 2004--2013. \textit{Random split.} GBM was also evaluated on a random 70/30 split. \textit{Cross-income transfer.} Countries were grouped by the World Bank classification of July 2018 (based on 2017 income) \cite{worldbank2018}: @@INC_HIC@@ high- (HIC), @@INC_UMIC@@ upper-middle- (UMIC) and @@INC_LMIC@@ lower-middle-income (LMIC). GBM without country was trained on HIC isolates from 2004--2014 (@@N_TRAIN_HIC@@) or on all countries and tested on 2015--2017 isolates from each group and from India. \textit{Leave-one-region-out.} For each WHO region, GBM without country was trained on all other regions (2004--2014) and tested on the held-out region (2015--2017). \textit{Learning curve.} GBM was retrained on 0.5--100\% of the training data (three repetitions for small subsets). \textit{Sensitivity analyses.} Without country; TEST study only; and a stricter outcome ($\ge$4 categories).
+
+\subsection{Performance Measures and Recalibration}\label{sec:measures}
+Discrimination was measured by AUROC and AUPRC \cite{saito2015}, and overall accuracy by the Brier score $\frac{1}{N}\sum_i(p_i-y_i)^2$. Calibration followed the hierarchy of \cite{vancalster2016}: the calibration-in-the-large intercept $a$ solving
+\begin{equation}
+\frac{1}{N}\sum_{i=1}^{N}\expit\big(a+\logit p_i\big)=\bar{y},
+\label{eq:citl}
+\end{equation}
+(ideal 0); the slope $\beta$ of $\logit\Pr(y_i{=}1)=\alpha+\beta\logit p_i$ (ideal 1); and the expected calibration error over ten equal-width bins $B_b$ \cite{guo2017},
+\begin{equation}
+\mathrm{ECE}=\sum_{b=1}^{10}\frac{|B_b|}{N}\,\Big|\overline{p}_{B_b}-\overline{y}_{B_b}\Big|.
+\label{eq:ece}
+\end{equation}
+95\% confidence intervals came from bootstrap resampling of the test set (500 resamples for main results, 200--300 for subgroups) \cite{efron1993}. To correct transfer errors we compared intercept-only recalibration, $p'_i=\expit(a+\logit p_i)$, and logistic recalibration, $p'_i=\expit(\alpha+\beta\logit p_i)$ \cite{janssen2008,steyerberg2019}, each fitted on all local pre-test data (2004--2014; 2004--2009 for India) or on the most recent available local year only (2014; for India, 2009, six years before the test period).
+
+\subsection{Explainability}\label{sec:explain}
+Permutation importance was the mean drop in test AUROC when one variable was permuted (five repeats) \cite{breiman2001,fisher2019}. An unpenalised multivariable LR with explicit reference categories, adjusted for all predictors including country and year, gave odds ratios (ORs) with Wald 95\% CIs.
+
+\subsection{Epidemiological Analyses}\label{sec:epi}
+Crude yearly trends were tested with the Cochran--Armitage test \cite{armitage1955}; country-adjusted trends were estimated as the OR per year from species-specific logistic models with country indicators. For geographic variation in 2015--2017, each country (and US state) with $\ge$30 isolates $j$ was compared with the pooled data using the species-standardised ratio $R_j=O_j/E_j$, with $E_j=\sum_{i\in j}\pi_{s(i)}$ and $V_j=\sum_{i\in j}\pi_{s(i)}(1-\pi_{s(i)})$, where $\pi_s$ is the pooled prevalence for species $s$. Units were tested with
+\begin{equation}
+z_j=\frac{R_j-1}{\sqrt{V_j/E_j^{2}+\tau^{2}}},
+\label{eq:funnel}
+\end{equation}
+with $\tau^2=0$ for standard funnel limits and $\tau^2$ estimated by the DerSimonian--Laird method for random-effects limits \cite{spiegelhalter2005,dersimonian1986}. For forecasting, every country--species series with $\ge$20 isolates per year, $\ge$6 such years up to 2014 and a last observation in 2012 or later was forecast for 2015--2017 from origin 2014 using the naive (last value) method, the mean of the last three values, a linear trend, and Holt's method \cite{holt2004,hyndman2021},
+\begin{equation}
+\begin{aligned}
+\ell_t&=\alpha y_t+(1-\alpha)(\ell_{t-1}+b_{t-1}),\\
+b_t&=\beta(\ell_t-\ell_{t-1})+(1-\beta)b_{t-1},\quad \hat{y}_{t+h}=\ell_t+h\,b_t,
+\end{aligned}
+\label{eq:holt}
+\end{equation}
+with $(\alpha,\beta)$ chosen by in-sample one-step error. Accuracy was the mean absolute error (MAE) in percentage points.
+
+%% ================================ IV =========================================
+\section{Results}\label{sec:results}
+\subsection{Cohort and MDR Prevalence}\label{sec:cohort}
+Most isolates came from HIC settings (@@SHARE_HIC@@; Table~\ref{tab:cohort}); LMIC countries contributed @@N_LMIC@@, including @@IND_N@@ from India (2004--2016; none for 2010--2014). Indian isolates came more often from intensive care (@@IND_ICU@@ vs.\ @@ALL_ICU@@ overall) and blood or cardiovascular specimens (@@IND_BLOOD@@ vs.\ @@ALL_BLOOD@@), and \sci{A. baumannii} made up @@IND_AB_SHARE@@ of them (vs.\ @@ALL_AB_SHARE@@). Overall, @@MDR_OVERALL@@ of isolates were MDR (Table~\ref{tab:prev}), rising from @@INC_P_HIC@@ in HIC to @@INC_P_UMIC@@ in UMIC and @@INC_P_LMIC@@ in LMIC settings. Across all Indian isolates (n\,=\,@@IND_N@@) prevalence was @@IND_P@@, including @@IND_AB@@ of \sci{A. baumannii} and @@IND_EC@@ of \sci{E. coli}; carbapenem non-susceptibility among Indian \sci{K. pneumoniae} was @@IND_CARB_KP@@ (@@ALL_CARB_KP@@ overall).
+
+\begin{table*}[!t]
+\caption{Characteristics of the Study Isolates by World Bank Income Group (Percentages of Isolates)}\label{tab:cohort}
+\centering\footnotesize
+\begin{tabular}{lrrrrr}
+\toprule
+ & All & HIC & UMIC & LMIC & India \\
+\midrule
+@@TAB_COHORT@@
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table}[!t]
+\caption{MDR Prevalence (\%) by Species and Income Group; Carbapenem Non-Susceptibility (\%) for Reference}\label{tab:prev}
+\centering\scriptsize\setlength{\tabcolsep}{2.4pt}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Species & $n$ & All & HIC & UMIC & LMIC & India$^a$ & Carb.\ NS \\
+\midrule
+@@TAB_PREV@@
+\bottomrule
+\multicolumn{8}{p{0.95\columnwidth}}{\scriptsize $^a$All Indian isolates, 2004--2016 (n\,=\,@@IND_N@@).}
+\end{tabular}
+\end{table}
+
+\subsection{Trends and Geographic Variation}
+Crude prevalence increased for all four species (Cochran--Armitage $p<0.001$; Fig.~\ref{fig:trend}), most steeply for \sci{K. pneumoniae} (@@KP_2004@@ in 2004 to @@KP_2017@@ in 2017). After adjustment for country, the yearly OR remained above one for \sci{K. pneumoniae} (@@TR_KP@@) and \sci{A. baumannii} (@@TR_AB@@), was close to one for \sci{E. coli} (@@TR_EC@@) and slightly below one for \sci{P. aeruginosa} (@@TR_PA@@), so part of the crude increase reflects changes in contributing countries. On the funnel plot (Fig.~\ref{fig:funnel}), @@FUN_ABOVE@@ of @@FUN_UNITS@@ countries lay above and @@FUN_BELOW@@ below the standard 99.8\% limits, far more variation than chance. @@FUN_RE_SENTENCE@@ India's species-standardised ratio was @@FUN_IND_RATIO@@ (@@FUN_IND_PCT@@ more MDR isolates than expected). Among US states, @@US_ABOVE@@ exceeded the standard 99.8\% limits (@@US_ABOVE_LIST@@); @@US_RE_SENTENCE@@
+
+\begin{figure}[!t]
+\centering
+\input{figures/fig_trend.tex}
+\caption{Crude MDR prevalence by year and species. INFORM isolates were added from 2012, changing the mix of contributing laboratories.}
+\label{fig:trend}
+\end{figure}
+
+\begin{figure}[!t]
+\centering
+\input{figures/fig_funnel.tex}
+\caption{Funnel plot of species-standardised MDR ratios (countries with $\ge$30 isolates, 2015--2017), with standard and random-effects 99.8\% limits \eqref{eq:funnel}.}
+\label{fig:funnel}
+\end{figure}
+
+\subsection{Temporal Validation}
+On 2015--2017 (Table~\ref{tab:models}, Fig.~\ref{fig:roc}), GBM had the best discrimination (AUROC @@GBM_AUROC_CI@@), followed by RF (@@RF_AUROC@@); the linear models were about 0.03 lower and the baseline reached @@BASE_AUROC@@. GBM had the lowest expected calibration error (@@GBM_ECE@@; intercept @@GBM_CI_INT@@, slope @@GBM_SLOPE@@), although RF's calibration intercept (@@RF_CI_INT@@) and the SVM's slope (@@SVM_SLOPE@@) were marginally closer to ideal. At the threshold fixed on 2014, GBM identified @@GBM_SENS@@ of MDR isolates with a specificity of @@GBM_SPEC@@. A random 70/30 split raised the apparent AUROC to @@RS_AUROC@@, overstating performance by @@RS_GAP@@. Discrimination was highest for \sci{A. baumannii} (@@SP_AB@@) and lowest for \sci{P. aeruginosa} (@@SP_PA@@; Table~\ref{tab:species}). In the Indian test subset (n\,=\,@@IND_TEST_N@@, 2015--2016 only, MDR @@IND_TEST_P@@), the pooled GBM with the country variable reached an AUROC of @@IND_POOLED_AUROC@@; this small-sample estimate is imprecise.
+
+\begin{table*}[!t]
+\caption{Performance on the 2015--2017 Temporal Test Set ($n$\,=\,@@N_TEST@@; MDR Prevalence @@MDR_TEST@@)}\label{tab:models}
+\centering\footnotesize
+\begin{tabular}{lcccccccc}
+\toprule
+Model & AUROC (95\% CI) & AUPRC & Brier & Cal.\ int. & Cal.\ slope & ECE & Sens.\ (\%) & Spec.\ (\%) \\
+\midrule
+@@TAB_MODELS@@
+\bottomrule
+\multicolumn{9}{l}{\scriptsize Baseline: species and year only. Cal.\ int., calibration-in-the-large intercept \eqref{eq:citl} (ideal 0); Cal.\ slope (ideal 1); ECE \eqref{eq:ece}.}
+\end{tabular}
+\end{table*}
+
+\begin{figure}[!t]
+\centering
+\input{figures/fig_roc.tex}
+\caption{ROC curves on the 2015--2017 test set (AUROC in brackets).}
+\label{fig:roc}
+\end{figure}
+
+\begin{table}[!t]
+\caption{AUROC by Species on the 2015--2017 Test Set}\label{tab:species}
+\centering\scriptsize\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{lrrcc}
+\toprule
+Subset & $n$ & MDR (\%) & LR & GBM (95\% CI) \\
+\midrule
+@@TAB_SPECIES@@
+\bottomrule
+\multicolumn{5}{p{0.95\columnwidth}}{\scriptsize $^a$Indian test isolates (2015--2016; no Indian isolates in 2017); models include the country variable.}
+\end{tabular}
+\end{table}
+
+\subsection{Subgroups and Sensitivity Analyses}
+Discrimination was similar across care settings, patient types, specimens, age groups and genders (Table~\ref{tab:sub}), ranging from @@SUB_MIN@@ to @@SUB_MAX@@ in subgroups with $\ge$200 isolates; it was lower in LMIC settings (@@SUB_LMIC@@), South-East Asia (@@SUB_SEA@@) and Africa (@@SUB_AFR@@), and higher for TEST than INFORM isolates. Removing country reduced the AUROC to @@SENS_NOC@@; the TEST-only and stricter-outcome analyses gave similar or slightly higher discrimination (Table~\ref{tab:sens}).
+
+\begin{table}[!t]
+\caption{Discrimination of GBM by Subgroup (2015--2017)}\label{tab:sub}
+\centering\scriptsize\setlength{\tabcolsep}{2pt}
+\begin{tabular}{llrrc}
+\toprule
+Grouping & Subgroup & $n$ & MDR (\%) & AUROC (95\% CI) \\
+\midrule
+@@TAB_SUB@@
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!t]
+\caption{Sensitivity Analyses (GBM)}\label{tab:sens}
+\centering\scriptsize\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrrrcc}
+\toprule
+Analysis & Train $n$ & Test $n$ & MDR (\%) & AUROC & AUPRC \\
+\midrule
+@@TAB_SENS@@
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Drivers of MDR Risk}
+Country carried most information (permutation importance @@IMP_COUNTRY@@ AUROC points), followed by species (@@IMP_SPECIES@@; Fig.~\ref{fig:imp}); specimen, specialty, age and gender added smaller signal, and patient type and year almost none. Isolates from medical intensive care (OR @@OR_MICU@@), surgical intensive care (@@OR_SICU@@), nursing homes or rehabilitation (@@OR_NH@@) and medical devices (@@OR_DEV@@) had higher adjusted odds of MDR, whereas outpatient clinics, young children and women had lower odds (Table~\ref{tab:or}). Indian isolates had @@OR_INDIA@@ times the adjusted odds of US isolates.
+
+\begin{figure}[!t]
+\centering
+\input{figures/fig_importance.tex}
+\caption{Permutation importance of each predictor for GBM on the 2015--2017 test set.}
+\label{fig:imp}
+\end{figure}
+
+\begin{table}[!t]
+\caption{Adjusted Odds Ratios for MDR (Multivariable LR Adjusted for All Predictors, Including Country and Year)}\label{tab:or}
+\centering\scriptsize
+\begin{tabular}{lc}
+\toprule
+Predictor (reference) & OR (95\% CI) \\
+\midrule
+@@TAB_OR@@
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Transfer Across Income Groups and Regions}
+Without country, the HIC-trained model discriminated about as well in UMIC and LMIC settings as in HIC (Table~\ref{tab:transfer}). The LMIC test set (n\,=\,@@N_LMIC_TEST@@) came from India, Morocco, Pakistan, the Philippines and Vietnam. Probabilities were systematically too low outside HIC: the mean predicted risk was @@T_HIC_LMIC_PRED@@ in LMIC (observed @@T_HIC_LMIC_OBS@@) and @@T_HIC_IND_PRED@@ in the Indian test subset (observed @@T_HIC_IND_OBS@@), whereas HIC predictions matched closely (@@T_HIC_HIC_PRED@@ vs.\ @@T_HIC_HIC_OBS@@; ECE @@ECE_HIC@@). Calibration intercepts were @@CI_UMIC@@ (UMIC), @@CI_LMIC@@ (LMIC) and @@CI_IND@@ (India), and the error was present in every risk quintile (Fig.~\ref{fig:rel}). Training on all countries improved discrimination slightly but did not remove the under-prediction. Holding out a whole WHO region cost at most @@LORO_MAXDROP@@ AUROC points (Table~\ref{tab:loro}), but mean risk was clearly under-predicted for the Eastern Mediterranean and South-East Asia regions (ECE @@LORO_EMR_ECE@@ and @@LORO_SEA_ECE@@) whether or not they were included in training, because a pooled model without country cannot represent their higher baseline risk.
+
+\begin{table*}[!t]
+\caption{Transfer of GBM Across Income Groups (Test Years 2015--2017; Country Variable Removed). Obs., Observed MDR Prevalence; Pred., Mean Predicted Risk; Both in \%}\label{tab:transfer}
+\centering\footnotesize
+\begin{tabular}{lrrcccccc}
+\toprule
+ & & & \multicolumn{4}{c}{HIC-trained} & \multicolumn{2}{c}{All-trained} \\
+\cmidrule(lr){4-7}\cmidrule(lr){8-9}
+Test set & $n$ & Obs. & AUROC & Pred. & Cal.\ int. & ECE & AUROC & Pred. \\
+\midrule
+@@TAB_TRANSFER@@
+\bottomrule
+\multicolumn{9}{l}{\scriptsize India: Indian test isolates, 2015--2016 (no Indian isolates in 2017).}
+\end{tabular}
+\end{table*}
+
+\begin{table*}[!t]
+\caption{Leave-One-WHO-Region-Out Validation of GBM (Country Variable Removed; Test Years 2015--2017)}\label{tab:loro}
+\centering\footnotesize
+\begin{tabular}{lrrcccc}
+\toprule
+ & & & \multicolumn{2}{c}{Region held out} & \multicolumn{2}{c}{Region included} \\
+\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+WHO region & Test $n$ & Obs.\ (\%) & AUROC & Pred.\ (\%) / ECE & AUROC & Pred.\ (\%) / ECE \\
+\midrule
+@@TAB_LORO@@
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure}[!t]
+\centering
+\input{figures/fig_reliability.tex}
+\caption{Reliability diagram (risk quintiles) of the HIC-trained model on HIC and LMIC test data, and on LMIC data after logistic recalibration with 2014 data.}
+\label{fig:rel}
+\end{figure}
+
+\subsection{Recalibration and Data Requirements}
+All recalibration strategies reduced calibration error (Table~\ref{tab:recal}). Using all of 2004--2014 over-corrected, because MDR prevalence in earlier LMIC data differed from 2015--2017; using only 2014 reduced the LMIC ECE from @@ECE_LMIC_NONE@@ to @@ECE_LMIC_RECENT@@ (intercept-only) and the UMIC ECE from @@ECE_UMIC_NONE@@ to @@ECE_UMIC_RECENT@@. For India, the latest pre-test year available was 2009 (n\,=\,@@IND_RECENT_N@@), six years before the test period; recalibration on it reduced the ECE from @@ECE_IND_NONE@@ to @@ECE_IND_RECENT@@, but this estimate is uncertain and is not evidence that recent Indian data would behave the same way. Intercept-only and logistic recalibration performed similarly. On the learning curve (Fig.~\ref{fig:lc}), a random subset of @@LC_N@@ training isolates (5\%) reached an AUROC of @@LC_AUROC@@ (@@LC_SHARE@@ of the full-data value), while fewer than @@LC_SMALL_N@@ gave clearly lower discrimination (@@LC_SMALL_AUROC@@).
+
+\begin{table*}[!t]
+\caption{Recalibration of the HIC-Trained GBM with Local Data (Evaluated on 2015--2017)}\label{tab:recal}
+\centering\footnotesize
+\begin{tabular}{llrcccc}
+\toprule
+Setting & Method (local data used) & Local $n$ & Pred.\ (\%) & Cal.\ int. & ECE & Brier \\
+\midrule
+@@TAB_RECAL@@
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure}[!t]
+\centering
+\input{figures/fig_learning_curve.tex}
+\caption{Learning curve of GBM: test AUROC (2015--2017) against the number of training isolates (mean $\pm$ SD over repetitions).}
+\label{fig:lc}
+\end{figure}
+
+\subsection{Forecasting Yearly MDR Prevalence}
+In total, @@FC_SERIES@@ country--species series gave @@FC_N@@ forecasts (Table~\ref{tab:fc}). The mean of the last three values was most accurate (MAE @@FC_MEAN3@@ percentage points), ahead of the naive method (@@FC_NAIVE@@); trend methods were worse (linear @@FC_LIN@@, Holt @@FC_HOLT@@). Year-to-year changes were noisy (SD @@FC_SD@@ points), so smoothing beat trend-following at this resolution.
+
+\begin{table}[!t]
+\caption{Accuracy of Yearly MDR-Prevalence Forecasts (Origin 2014; MAE in Percentage Points)}\label{tab:fc}
+\centering\scriptsize\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{lcccc}
+\toprule
+Method & MAE (95\% CI) & $h{=}1$ & $h{=}2$ & $h{=}3$ \\
+\midrule
+@@TAB_FC@@
+\bottomrule
+\end{tabular}
+\end{table}
+
+%% ================================ V ==========================================
+\section{Discussion}\label{sec:discussion}
+\subsection{Principal Findings}
+Routine metadata carried real but moderate information about MDR status: the best model reached an AUROC of about 0.71 on later years, with good calibration in its own setting. Validation design mattered: random splitting overstated discrimination by about @@RS_GAP@@. Discrimination transferred reasonably across income groups and regions, but calibration did not: a model built on HIC data under-estimated MDR risk in UMIC, LMIC and Indian test data by @@GAP_MIN@@--@@GAP_MAX@@ percentage points on average. In UMIC and LMIC data this error was largely corrected with an intercept update using the latest local year (2014); older local data over-corrected it. For India, only 2009 data were available for updating, so the benefit of recalibration with genuinely recent Indian data remains to be shown.
+
+\subsection{Comparison with Previous Work}
+Our AUROCs are lower than those of models using patient histories \cite{yelin2019,lewinepstein2021} or susceptibility data \cite{valavarasu2025,wishal2026}, which is expected because those inputs are unavailable in surveillance databases or only available after testing. Predictor effects agree with clinical knowledge: intensive care, long-term care and indwelling devices are well-recognised settings for acquisition and spread of resistant Gram-negative bacteria, which WHO guidance targets with infection-prevention measures \cite{who2017cre}. The dominance of country is consistent with evidence that resistance is shaped by governance, sanitation and infrastructure \cite{collignon2018}, rising antibiotic consumption in low- and middle-income countries \cite{klein2018}, and even local climate \cite{macfadden2018}. Earlier work reported falling accuracy across regions \cite{nsubuga2024}; for metadata models the main failure was miscalibration rather than loss of ranking, which matters because any rule with an absolute risk threshold will miss MDR cases where the burden is highest \cite{vancalster2019}.
+
+\subsection{Implications for Surveillance Systems in India}
+We suggest six principles for MDR surveillance tools in India, including the authors' PathoWatch platform: (1) use pre-test metadata for population-level prioritisation, not individual prescribing; (2) never deploy an imported model without checking and updating its calibration with the most recent local data, repeated as resistance changes; (3) plan for modest data needs, since in this pooled dataset @@LC_N@@ labelled isolates (5\% of the training data) gave @@LC_SHARE@@ of the full-data AUROC, although local data needs may differ; (4) validate forward in time, because random splits overstate performance; (5) use simple, transparent methods for yearly trends, since a three-year moving average beat trend extrapolation; and (6) record location below country level, because within-country hotspots could be examined only where sub-national location existed (US states).
+
+\subsection{Strengths and Limitations}\label{sec:limitations}
+Strengths are the size and global coverage, the species-specific outcome checked by two implementations, the temporal design, the separate assessment of discrimination and calibration, and reproducibility. ATLAS is a sponsored programme in which selected laboratories submit isolates, so it is not population-representative, and changes in sites and design (such as the addition of INFORM in 2012) affect trends \cite{catalan2022}. Time is recorded only by year and location only by country, ruling out ward-level, weekly or outbreak-scale analyses. Indian data are small, come only from TEST, and are missing for 2010--2014 and 2017, so India-specific estimates are imprecise and the latest Indian recalibration year preceded the test period by six years. The MDR definition was adapted to the agents tested, panels differed between studies, and income groups were fixed at one year. The models have not been validated prospectively or on Indian hospital laboratory records.
+
+\subsection{Future Work}
+Next steps are external validation on dated, ward-coded WHONET exports from Indian hospitals with ethics approval; prospective calibration monitoring with scheduled recalibration; evaluation at finer time and place resolution; and assessment of whether pre-test risk estimates improve targeting of rapid diagnostics and infection control.
+
+%% ================================ VI =========================================
+\section{Conclusion}\label{sec:conclusion}
+Using @@N_TOTAL@@ ATLAS isolates and forward-in-time validation, we showed that metadata available before susceptibility testing predicts MDR status with moderate accuracy, with country, species, care setting and specimen type as the main drivers. Models trained in high-income settings kept their ranking ability elsewhere but under-estimated MDR risk in lower-middle-income settings and India. Recalibration with the latest pre-test year of local data (2014) corrected most of this error in upper- and lower-middle-income settings; for India the latest available year was 2009, so the effect of recalibrating with recent Indian data remains to be shown. These results support population-level surveillance research rather than individual treatment decisions, and indicate that local calibration, temporal validation and simple trend methods should be built into MDR surveillance tools in India from the start.
+
+%% ================================ APPENDIX ===================================
+\appendix
+\section{MDR Categories, Hyperparameters and Reporting}\label{sec:appendix}
+Table~\ref{tab:cats} lists the antimicrobial categories and ATLAS agents used in the MDR definition, Table~\ref{tab:hyper} the hyperparameters fixed before the test data were examined, and Table~\ref{tab:tripod} where the main TRIPOD+AI items are reported.
+\begin{table*}[!t]
+\caption{Antimicrobial Categories and ATLAS Agents Used to Define MDR (After Magiorakos \textit{et al.} \cite{magiorakos2012}). \checkmark\ = Category Counted}\label{tab:cats}
+\centering\footnotesize
+\begin{tabular}{>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{6.0cm}cccc}
+\toprule
+Category & ATLAS agents & \sci{E. coli} & \sci{K. pneumoniae} & \sci{P. aeruginosa} & \sci{A. baumannii} \\
+\midrule
+Aminoglycosides & amikacin, gentamicin & \checkmark & \checkmark & \checkmark & \checkmark \\
+Anti-MRSA cephalosporins & ceftaroline & \checkmark & \checkmark & & \\
+Antipseudomonal penicillins + BLI & piperacillin--tazobactam & \checkmark & \checkmark & \checkmark & \checkmark \\
+Carbapenems$^a$ & ertapenem$^b$, imipenem, meropenem, doripenem & \checkmark & \checkmark & \checkmark & \checkmark \\
+Extended-spectrum cephalosporins$^c$ & ceftriaxone$^d$, ceftazidime, cefepime & \checkmark & \checkmark & \checkmark & \checkmark \\
+Cephamycins & cefoxitin & \checkmark & \checkmark & & \\
+Fluoroquinolones$^e$ & ciprofloxacin, levofloxacin & \checkmark & \checkmark & \checkmark & \checkmark \\
+Folate pathway inhibitors & trimethoprim--sulfamethoxazole & \checkmark & \checkmark & & \checkmark \\
+Glycylcyclines & tigecycline & \checkmark & \checkmark & & \\
+Monobactams & aztreonam & \checkmark & \checkmark & \checkmark & \\
+Penicillins & ampicillin & \checkmark & --$^f$ & & \\
+Penicillins + BLI & amoxicillin--clavulanate$^g$, ampicillin--sulbactam & \checkmark & \checkmark & & \checkmark \\
+Polymyxins & colistin & \checkmark & \checkmark & \checkmark & \checkmark \\
+Tetracyclines & tetracycline, minocycline & \checkmark & \checkmark & & \checkmark \\
+\midrule
+Number of categories & & 14 & 13 & 7 & 9 \\
+\bottomrule
+\multicolumn{6}{p{0.96\textwidth}}{\scriptsize BLI, $\beta$-lactamase inhibitor. $^a$Antipseudomonal carbapenems (imipenem, meropenem, doripenem) for \sci{P. aeruginosa} and \sci{A. baumannii}. $^b$Enterobacterales only. $^c$Antipseudomonal cephalosporins (ceftazidime, cefepime) for \sci{P. aeruginosa}. $^d$Not used for \sci{P. aeruginosa}. $^e$Antipseudomonal fluoroquinolones for \sci{P. aeruginosa} and \sci{A. baumannii}; levofloxacin counted with ciprofloxacin. $^f$Excluded (intrinsic resistance). $^g$Enterobacterales only; ampicillin--sulbactam only for \sci{A. baumannii}.}
+\end{tabular}
+\end{table*}
+
+\begin{table}[!t]
+\caption{Hyperparameters (Fixed in Advance; scikit-learn @@SKLEARN@@)}\label{tab:hyper}
+\centering\scriptsize
+\begin{tabular}{l>{\raggedright\arraybackslash}p{5.6cm}}
+\toprule
+Model & Settings \\
+\midrule
+LR & L2, $C=1$, lbfgs, max.\ 3{,}000 iterations; one-hot encoding (categories with $<$20 cases pooled) \\
+Linear SVM & $C=0.1$, max.\ 5{,}000 iterations; sigmoid calibration, 3-fold \\
+RF & 300 trees, $\sqrt{p}$ features per split, minimum leaf 20 \\
+GBM & histogram-based; learning rate 0.05; $\le$600 iterations; early stopping (10\% validation); 31 leaves; L2 1.0; native categorical \\
+Threshold & maximises F1 on 2014 (models fitted to 2004--2013) \\
+Seed & 42 for all procedures \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!t]
+\caption{Where the Main TRIPOD+AI Items Are Reported (Summary, Not the Full Checklist)}\label{tab:tripod}
+\centering\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}p{4.9cm}}
+\toprule
+Item & Location \\
+\midrule
+Title, abstract & Title; abstract \\
+Background, objectives & Section~\ref{sec:intro} \\
+Data source, participants, dates & Section~\ref{sec:data}; Table~\ref{tab:cohort} \\
+Outcome definition & Section~\ref{sec:outcome}; Table~\ref{tab:cats} \\
+Predictors and timing & Section~\ref{sec:predictors} \\
+Sample size & Sections~\ref{sec:data}, \ref{sec:cohort}; Fig.~\ref{fig:lc} \\
+Missing data & Unknown categories kept as explicit levels \\
+Models & Section~\ref{sec:predictors}; Table~\ref{tab:hyper} \\
+Validation design & Section~\ref{sec:validation} \\
+Performance measures & Section~\ref{sec:measures}; Tables~\ref{tab:models}, \ref{tab:transfer}, \ref{tab:recal} \\
+Subgroups & Table~\ref{tab:sub} \\
+Model updating & Section~\ref{sec:measures}; Table~\ref{tab:recal} \\
+Limitations & Section~\ref{sec:limitations} \\
+Availability, funding, conflicts & Declarations \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+%% ================================ DECLARATIONS ===============================
+\section*{Declarations}
+\noindent\textbf{Data availability.} ATLAS data are available from the Vivli AMR Register \cite{vivli}. \authornote{Confirm the terms of use of the ATLAS file you analysed (2018 open reuse release) permit publication, and cite it as the data provider requires.}\\
+\textbf{Code availability.} Analysis code is available from the corresponding author on reasonable request. \authornote{confirm}\\
+\textbf{Funding.} \authornote{State funding, or ``This research received no specific grant.''}\\
+\textbf{Competing interests.} \authornote{State competing interests, or ``The authors declare none.''}\\
+\textbf{Ethics.} \authornote{Confirm with your institution whether ethics approval is required for analysis of public, de-identified surveillance data.}\\
+\textbf{Use of AI tools.} \authornote{Describe any use of AI tools in data analysis, coding or writing, as required by IEEE policy.}
+
+\section*{Acknowledgment}
+The authors thank Pfizer and Micron Research for making the ATLAS data available for reuse.
+
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

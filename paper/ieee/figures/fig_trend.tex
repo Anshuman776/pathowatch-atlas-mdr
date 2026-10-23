@@ -1,0 +1,9 @@
+% Crude MDR prevalence by year and species (data filled from analysis outputs).
+\begin{tikzpicture}
+\begin{axis}[width=\columnwidth, height=5.2cm, xmin=2003.5, xmax=2017.5, ymin=10, ymax=80,
+  xtick={2004,2006,2008,2010,2012,2014,2016}, xticklabel style={/pgf/number format/1000 sep={}},
+  ylabel={MDR prevalence (\%)}, legend style={font=\scriptsize, at={(0.02,0.98)}, anchor=north west, legend columns=2, draw=none, fill=white, fill opacity=0.8, text opacity=1},
+  grid=major, grid style={gray!20}, mark size=1.3pt, tick label style={font=\scriptsize}, label style={font=\footnotesize}]
+@@FIG_TREND@@
+\end{axis}
+\end{tikzpicture}

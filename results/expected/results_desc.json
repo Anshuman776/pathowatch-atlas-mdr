@@ -1,0 +1,79 @@
+{
+ "overall_mdr": 0.348583175287171,
+ "overall_k": 81055,
+ "n_countries": 72,
+ "inc_countries": {
+  "HIC": 40,
+  "UMIC": 19,
+  "LMIC": 13
+ },
+ "cats_tested_median": {
+  "Acinetobacter baumannii": 6.0,
+  "Escherichia coli": 9.0,
+  "Klebsiella pneumoniae": 8.0,
+  "Pseudomonas aeruginosa": 5.0
+ },
+ "cats_tested_range": {
+  "Acinetobacter baumannii": [
+   5,
+   6
+  ],
+  "Escherichia coli": [
+   9,
+   10
+  ],
+  "Klebsiella pneumoniae": [
+   8,
+   9
+  ],
+  "Pseudomonas aeruginosa": [
+   5,
+   7
+  ]
+ },
+ "n_source_groups": 14,
+ "source_groups": [
+  "Bodily Fluids",
+  "CNS",
+  "CVS",
+  "GI",
+  "GU",
+  "HEENT",
+  "INT",
+  "Instruments",
+  "Lymph",
+  "Muscular",
+  "Reproductive",
+  "Respiratory",
+  "Skeletal",
+  "Unknown"
+ ],
+ "n_spec": 12,
+ "india_by_species": {
+  "Acinetobacter baumannii": [
+   197,
+   0.8629441624365483
+  ],
+  "Escherichia coli": [
+   322,
+   0.8229813664596274
+  ],
+  "Klebsiella pneumoniae": [
+   319,
+   0.6520376175548589
+  ],
+  "Pseudomonas aeruginosa": [
+   295,
+   0.5084745762711864
+  ]
+ },
+ "train_hic": 134774,
+ "lmic_countries_test": [
+  "India",
+  "Morocco",
+  "Pakistan",
+  "Philippines",
+  "Vietnam"
+ ],
+ "pct_inpatient": 0.7165404447655541
+}

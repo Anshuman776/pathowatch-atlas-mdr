@@ -1,0 +1,6 @@
+# Versions used for the results in the paper (Python 3.13, Linux, CPU)
+numpy==2.5.3
+pandas==3.0.5
+scipy==1.18.1
+scikit-learn==1.9.1
+lxml==6.1.3

@@ -1,0 +1,18 @@
+# ATLAS data and anything derived from it must never be committed
+data/*.xlsx
+data/*.csv
+work/
+# regenerated outputs (expected results are kept in results/expected/)
+results/*.json
+results/*.log
+paper/ieee/build/
+# Python / LaTeX clutter
+__pycache__/
+.venv/
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+!results/expected/*.log

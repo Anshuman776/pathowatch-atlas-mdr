@@ -1,0 +1,11 @@
+% Permutation importance (mean AUROC drop) of each predictor for GBM.
+\begin{tikzpicture}
+\begin{axis}[xbar, width=0.92\columnwidth, height=5.2cm, xmin=0, bar width=6pt,
+  symbolic y coords={@@IMP_COORDS@@}, ytick=data, y dir=reverse,
+  xlabel={Mean drop in AUROC when permuted}, tick label style={font=\scriptsize}, label style={font=\footnotesize},
+  scaled x ticks=false, xticklabel style={/pgf/number format/fixed, /pgf/number format/precision=2},
+  nodes near coords, nodes near coords style={font=\tiny, /pgf/number format/fixed, /pgf/number format/fixed zerofill, /pgf/number format/precision=3},
+  enlarge y limits=0.1, enlarge x limits={upper, value=0.25}]
+\addplot[fill=gray!55, draw=black] coordinates {@@IMP_DATA@@};
+\end{axis}
+\end{tikzpicture}

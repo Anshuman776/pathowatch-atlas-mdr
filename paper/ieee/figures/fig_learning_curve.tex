@@ -1,0 +1,8 @@
+% Learning curve: test AUROC against number of training isolates (mean +- SD).
+\begin{tikzpicture}
+\begin{axis}[width=\columnwidth, height=4.8cm, xmode=log, xlabel={Training isolates (log scale)}, ylabel={Test AUROC},
+  ymin=0.6, ymax=0.73, grid=major, grid style={gray!20}, tick label style={font=\scriptsize}, label style={font=\footnotesize},
+  log ticks with fixed point, xtick={1000,10000,100000}, xticklabels={1{,}000,10{,}000,100{,}000}]
+\addplot[black, thick, mark=*, mark size=1.3pt, error bars/.cd, y dir=both, y explicit] coordinates {@@FIG_LC@@};
+\end{axis}
+\end{tikzpicture}
